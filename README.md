@@ -21,6 +21,8 @@ or just copy the `key-display.js` file
 
 ## How to use
 
+### Vanilla JS
+
 Please check the [example](./example/index.html)
 
 ```html
@@ -40,6 +42,38 @@ Please check the [example](./example/index.html)
     document.body.appendChild(keyDisplay);
   };
 </script>
+```
+
+### Vue.js
+```html
+<script setup>
+import defineKeyDisplay from 'key-display';
+
+defineKeyDisplay({
+    maxKeys: 3,
+    timeout: 100000,
+    upperLetter: false,
+    mergeModifierKey: false,
+    mergeRepeatKey: true,
+    showRepeatCount: true,
+  });
+</script>
+```
+
+and you need set `compilerOptions.isCustomElement` in `vite.config.js`
+
+```javascript
+export default defineConfig({
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => ["key-display"].includes(tag),
+        },
+      },
+    }),
+  ],
+})
 ```
 
 ## Configuration
