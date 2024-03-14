@@ -1,0 +1,20 @@
+{
+  "name": "key-display",
+  "version": "0.1.0",
+  "description": "Display key press on web page",
+  "main": "key-display.js",
+  "type": "module",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/eyebrowkang/key-display.git"
+  },
+  "keywords": [
+    "key",
+    "key-display",
+    "keypress",
+    "keydown"
+  ],
+  "author": "eyebrowkang",
+  "license": "MIT"
+}

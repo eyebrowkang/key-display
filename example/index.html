@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Key Display</title>
+</head>
+
+<body>
+  <h1>Key Display</h1>
+  <div class="container">
+    <input id="input-box" />
+  </div>
+  <script type="module">
+    import defineKeyDisplay from "../key-display.js";
+    defineKeyDisplay({
+      maxKeys: 3,
+      timeout: 100000,
+      upperLetter: false,
+      mergeModifierKey: false,
+      mergeRepeatKey: true,
+      showRepeatCount: true,
+    });
+
+    window.onload = () => {
+      const keyDisplay = document.createElement("key-display");
+      document.body.appendChild(keyDisplay);
+    };
+  </script>
+</body>
+
+</html>
