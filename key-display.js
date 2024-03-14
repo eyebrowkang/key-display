@@ -1,10 +1,10 @@
 export default function(config = {}) {
-  const maxKeys = config.maxKeys || 1;
-  const timeout = config.timeout || 2000;
-  const upperLetter = config.upperLetter || true;
-  const mergeModifierKey = config.mergeModifierKey || true;
-  const mergeRepeatKey = config.mergeRepeatKey || false;
-  const showRepeatCount = config.showRepeatCount || false;
+  const maxKeys = config.maxKeys ?? 1;
+  const timeout = config.timeout ?? 2000;
+  const upperLetter = config.upperLetter ?? true;
+  const mergeModifierKey = config.mergeModifierKey ?? true;
+  const mergeRepeatKey = config.mergeRepeatKey ?? false;
+  const showRepeatCount = config.showRepeatCount ?? false;
 
   customElements.define(
     "key-display",

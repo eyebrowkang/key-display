@@ -50,13 +50,13 @@ Please check the [example](./example/index.html)
 import defineKeyDisplay from 'key-display';
 
 defineKeyDisplay({
-    maxKeys: 3,
-    timeout: 100000,
-    upperLetter: false,
-    mergeModifierKey: false,
-    mergeRepeatKey: true,
-    showRepeatCount: true,
-  });
+  maxKeys: 3,
+  timeout: 100000,
+  upperLetter: false,
+  mergeModifierKey: false,
+  mergeRepeatKey: true,
+  showRepeatCount: true,
+});
 </script>
 ```
 
