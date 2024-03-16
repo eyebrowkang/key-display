@@ -23,7 +23,7 @@ export default function(config = {}) {
           display: flex;
           justify-content: center;
           align-items: center;
-          position: absolute;
+          position: fixed;
           bottom: 4rem;
           left: 50%;
           transform: translateX(-50%);
@@ -35,16 +35,16 @@ export default function(config = {}) {
 
         .key-box {
           position: relative;
-          color: rgba(23, 23, 23, 0.5);
-          background: rgba(23, 23, 23, 0.5);
+          color: rgba(200, 200, 200);
+          background: rgba(100, 100, 100);
           white-space: nowrap;
           border-radius: 5px;
-          box-shadow: 0 4px 6px -1px rgba(23, 23, 23, 0.2), 0 2px 4px -2px rgba(23, 23, 23, 0.2);
+          box-shadow: 0 4px 6px -1px rgba(250, 250, 250, 0.8), 0 2px 4px -2px rgba(250, 250, 250, 0.8);
         }
 
         .key-box:last-child {
           color: rgb(250, 250, 250);
-          background: rgb(23, 23, 23);
+          background: rgb(25, 25, 25);
         }
 
         .key-box .key {
