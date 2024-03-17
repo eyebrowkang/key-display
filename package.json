@@ -16,5 +16,11 @@
     "keydown"
   ],
   "author": "eyebrowkang",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "chrome-types": "~0.1.273"
+  },
+  "dependencies": {
+    "@webcomponents/webcomponentsjs": "~2.8.0"
+  }
 }

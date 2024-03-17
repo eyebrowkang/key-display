@@ -1,0 +1,16 @@
+Privacy Policy for Key-Display Extension
+
+This Privacy Policy describes our policies and procedures on the collection, use, and disclosure of your information when you use the Key-Display extension and tells you about your privacy rights and how the law protects you. By using the Key-Display extension, you agree to the collection and use of information in accordance with this Privacy Policy. The Key-Display extension is committed to protecting your privacy and handling any personal information we obtain from you with care and respect.
+
+No Collection of Personal Data
+The Key-Display extension does not collect or store any personal data or information. The extension operates entirely locally on your device, and no data or information is transmitted to us or any third parties.
+
+Purpose of the Extension
+The Key-Display extension is designed to visually display key presses on web pages in real-time. This functionality is provided without the need for collecting, storing, or transmitting any personal information from the users.
+
+Use of Permissions
+The Key-Display extension requires certain permissions to function properly, including activeTab, host permissions, and scripting. These permissions are used solely for the purpose of displaying key presses on the web pages you visit and for no other purposes. No personal information is collected, stored, or transmitted as a result of these permissions.
+
+Changes to This Privacy Policy
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page. You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.
+
