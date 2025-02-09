@@ -30,14 +30,14 @@ formEl.onsubmit = async (event) => {
   const keyDisplay = {
     maxKeys: maxKeysEl.value,
     timeout: timeoutEl.value,
-    upperLetter: upperLetterEl.value === 'yes',
-    mergeModifierKey: mergeModifierKeyEl.value === 'yes',
-    mergeRepeatKey: mergeRepeatKeyEl.value === 'yes',
-    showRepeatCount: showRepeatCountEl.value === 'yes',
+    upperLetter: upperLetterEl.value === "yes",
+    mergeModifierKey: mergeModifierKeyEl.value === "yes",
+    mergeRepeatKey: mergeRepeatKeyEl.value === "yes",
+    showRepeatCount: showRepeatCountEl.value === "yes",
   };
   const extension = {
-    defaultOn: defaultOnEl.value === 'yes',
-    remember: rememberEl.value === 'yes',
+    defaultOn: defaultOnEl.value === "yes",
+    remember: rememberEl.value === "yes",
   };
 
   chrome.action.setBadgeText({
@@ -60,7 +60,7 @@ formEl.onreset = async (event) => {
 };
 
 async function setDefaultConfig() {
-  const { extension, keyDisplay } = await import("../config.js");
+  const { extension, keyDisplay } = await import("../../utils/config.ts");
   const config = {
     keyDisplay,
     extension,

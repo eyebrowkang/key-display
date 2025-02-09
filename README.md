@@ -15,9 +15,9 @@ This is a simple web component, you can use it just like normal html element.
 
 ## Install
 
-`npm install key-display`
-
-or just copy the `key-display.js` file
+```
+npm install key-display
+```
 
 ## How to use
 

@@ -1,26 +1,13 @@
 {
-  "name": "key-display",
-  "version": "0.1.1",
-  "description": "Display key press on web page",
-  "main": "key-display.js",
+  "name": "key-display-monorepo",
   "type": "module",
-  "scripts": {},
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/eyebrowkang/key-display.git"
-  },
-  "keywords": [
-    "key",
-    "key-display",
-    "keypress",
-    "keydown"
-  ],
+  "version": "0.1.1",
+  "private": true,
+  "description": "Display key press on web page",
   "author": "eyebrowkang",
   "license": "MIT",
+  "scripts": {},
   "devDependencies": {
-    "chrome-types": "~0.1.273"
-  },
-  "dependencies": {
-    "@webcomponents/webcomponentsjs": "~2.8.0"
+    "prettier": "^3.4.2"
   }
 }
