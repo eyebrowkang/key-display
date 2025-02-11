@@ -1,4 +1,20 @@
-export default function(config = {}) {
+export interface KeyDisplayConfig {
+  maxKeys?: number;
+  timeout?: number;
+  upperLetter?: boolean;
+  mergeModifierKey?: boolean;
+  mergeRepeatKey?: boolean;
+  showRepeatCount?: boolean;
+}
+
+// @internal
+interface KeyPressHistoryItem {
+  key: string;
+  count: number;
+  countEl: HTMLElement | null;
+}
+
+export default function (config: KeyDisplayConfig) {
   const maxKeys = config.maxKeys ?? 1;
   const timeout = config.timeout ?? 2000;
   const upperLetter = config.upperLetter ?? true;
@@ -9,6 +25,11 @@ export default function(config = {}) {
   customElements.define(
     "key-display",
     class extends HTMLElement {
+      shadow: ShadowRoot;
+      keyPressHistory: KeyPressHistoryItem[];
+      clearContainer: () => void;
+      handleKeydown: (event: KeyboardEvent) => void;
+
       constructor() {
         super();
 
@@ -75,7 +96,7 @@ export default function(config = {}) {
         document.removeEventListener("keydown", this.handleKeydown);
       }
 
-      createKeyElement({ key }) {
+      createKeyElement({ key }: KeyPressHistoryItem) {
         const keyContainerEl = document.createElement("div");
         keyContainerEl.classList.add("key-box");
 
@@ -92,7 +113,7 @@ export default function(config = {}) {
         return [keyContainerEl, countEl];
       }
 
-      updateKey(key) {
+      updateKey(key: string) {
         const container = this.shadow.querySelector(".container");
 
         if (
@@ -103,16 +124,16 @@ export default function(config = {}) {
           const lastHistoryItem =
             this.keyPressHistory[this.keyPressHistory.length - 1];
           const count = ++lastHistoryItem.count;
-          if (showRepeatCount)
+          if (showRepeatCount && lastHistoryItem.countEl)
             lastHistoryItem.countEl.textContent = `\u00D7 ${count}`;
         } else {
-          const item = {
+          const item: KeyPressHistoryItem = {
             key,
             count: 1,
             countEl: null,
           };
           const [keyContainerEl, countEl] = this.createKeyElement(item);
-          container.appendChild(keyContainerEl);
+          container?.appendChild(keyContainerEl);
 
           item.countEl = countEl;
           this.keyPressHistory.push(item);
@@ -120,18 +141,19 @@ export default function(config = {}) {
 
         if (this.keyPressHistory.length > maxKeys) {
           this.keyPressHistory.shift();
-          container.firstChild.remove();
+          container?.firstChild?.remove();
         }
 
         this.clearContainer();
       }
 
       _clearContainer() {
-        function debounce(func, timeout) {
-          let timer;
-          return (...args) => {
+        function debounce(func: () => void, timeout: number) {
+          let timer: number;
+          return (...args: any) => {
             timer && clearTimeout(timer);
             timer = setTimeout(() => {
+              // @ts-ignore
               func.apply(this, args);
             }, timeout);
           };
@@ -139,12 +161,14 @@ export default function(config = {}) {
 
         return debounce(() => {
           const container = this.shadow.querySelector(".container");
+          if (!container) return;
+
           this.keyPressHistory = [];
           container.innerHTML = "";
         }, timeout);
       }
 
-      _handleKeydown(event) {
+      _handleKeydown(event: KeyboardEvent) {
         let keyCombination = "";
         if (mergeModifierKey) {
           if (event.ctrlKey && event.key !== "Control")
@@ -159,8 +183,8 @@ export default function(config = {}) {
         if (
           upperLetter &&
           event.key.length === 1 &&
-          event.key.charCodeAt() >= 97 &&
-          event.key.charCodeAt() <= 122
+          event.key.charCodeAt(0) >= 97 &&
+          event.key.charCodeAt(0) <= 122
         ) {
           keyCombination += event.key.toUpperCase();
         } else {
@@ -169,6 +193,6 @@ export default function(config = {}) {
 
         this.updateKey(keyCombination);
       }
-    }
+    },
   );
 }

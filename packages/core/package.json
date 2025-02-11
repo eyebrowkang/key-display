@@ -3,7 +3,9 @@
   "type": "module",
   "version": "0.1.1",
   "description": "Display key press on web page",
-  "main": "key-display.js",
+  "main": "./dist/key-display.js",
+  "module": "./dist/key-display.js",
+  "types": "./dist/key-display.d.ts",
   "repository": {
     "type": "git",
     "url": "git://github.com/eyebrowkang/key-display.git"
@@ -16,5 +18,8 @@
   ],
   "author": "eyebrowkang",
   "license": "MIT",
-  "scripts": {}
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
 }
