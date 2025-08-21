@@ -1,198 +1,343 @@
-export interface KeyDisplayConfig {
-  maxKeys?: number;
-  timeout?: number;
-  upperLetter?: boolean;
-  mergeModifierKey?: boolean;
-  mergeRepeatKey?: boolean;
-  showRepeatCount?: boolean;
+interface KeyDisplayConfig {
+  maxKeys: number;
+  hiddenDelay: number;
+  mergeRepeatKeys: boolean;
+  mergeModifierKeys: boolean;
 }
 
-// @internal
-interface KeyPressHistoryItem {
-  key: string;
-  count: number;
-  countEl: HTMLElement | null;
+function debounce<T extends WeakKey>(delayProp: keyof T | number) {
+  return function (
+    target: T,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ): PropertyDescriptor {
+    const originalMethod = descriptor.value;
+    const timersMap = new WeakMap<T, number>();
+
+    descriptor.value = function (this: T, ...args: any[]) {
+      const delay =
+        typeof delayProp === "number" ? delayProp : (this[delayProp] as unknown as number);
+
+      const existingTimer = timersMap.get(this);
+      if (existingTimer) {
+        window.clearTimeout(existingTimer);
+      }
+
+      const newTimer = window.setTimeout(() => {
+        originalMethod.apply(this, args);
+        timersMap.delete(this);
+      }, delay);
+
+      timersMap.set(this, newTimer);
+    };
+
+    return descriptor;
+  };
 }
 
-export default function (config: KeyDisplayConfig) {
-  const maxKeys = config.maxKeys ?? 1;
-  const timeout = config.timeout ?? 2000;
-  const upperLetter = config.upperLetter ?? true;
-  const mergeModifierKey = config.mergeModifierKey ?? true;
-  const mergeRepeatKey = config.mergeRepeatKey ?? false;
-  const showRepeatCount = config.showRepeatCount ?? false;
+class KeyDisplayElement extends HTMLElement {
+  static observedAttributes = [
+    "max-keys",
+    "hidden-delay",
+    "merge-repeat-keys",
+    "merge-modifier-keys",
+  ];
+  static codeDict: Record<string, string> = {
+    Escape: "\u238B", // ⎋
+    Minus: "\u002D", // -
+    Equal: "\u003D", // =
+    Backspace: "\u232B", // ⌫
+    Tab: "\u21C4", // ⇄
+    BracketLeft: "\u005B", // [
+    BracketRight: "\u005D", // ]
+    Enter: "\u23CE", // ⏎
+    ControlLeft: "\u005E", // ^
+    ControlRight: "\u005E", // ^
+    Semicolon: "\u003B", // ;
+    Quote: "\u0027", // '
+    Backquote: "\u0060", // `
+    ShiftLeft: "\u21E7", // ⇧
+    ShiftRight: "\u21E7", // ⇧
+    Backslash: "\u005C", // \
+    Comma: "\u002C", // ,
+    Period: "\u002E", // .
+    Slash: "\u002F", // /
+    NumpadMultiply: "\u002A", // *
+    AltLeft: "\u2387", // ⎇
+    AltRight: "\u2387", // ⎇
+    CapsLock: "\u21EA", // ⇪
+    NumpadSubtract: "\u002D", // -
+    NumpadAdd: "\u002B", // +
+    NumpadDecimal: "\u002E", // .
+    IntlBackslash: "\u007C", // |
+    NumpadEqual: "\u003D", // =
+    NumpadComma: "\u002C", // ,
+    NumpadEnter: "\u23CE", // ⏎
+    NumpadDivide: "\u002F", // /
+    ArrowUp: "\u2191", // ↑
+    ArrowLeft: "\u2190", // ←
+    ArrowRight: "\u2192", // →
+    ArrowDown: "\u2193", // ↓
+    MetaLeft: "\u2318", // ⌘
+    MetaRight: "\u2318", // ⌘
+    // MetaLeft: "\u229E", // ⊞
+  };
 
-  customElements.define(
-    "key-display",
-    class extends HTMLElement {
-      shadow: ShadowRoot;
-      keyPressHistory: KeyPressHistoryItem[];
-      clearContainer: () => void;
-      handleKeydown: (event: KeyboardEvent) => void;
+  config: KeyDisplayConfig;
+  modifierKeySet: Set<string>;
+  shadow: ShadowRoot;
+  handleKeydown: (event: KeyboardEvent) => void;
 
-      constructor() {
-        super();
+  constructor() {
+    super();
 
-        this.keyPressHistory = [];
-        this.clearContainer = this._clearContainer();
-        this.handleKeydown = this._handleKeydown.bind(this);
+    this.config = {
+      maxKeys: 5,
+      hiddenDelay: 5_000,
+      mergeRepeatKeys: true,
+      mergeModifierKeys: true,
+    };
+    this.modifierKeySet = new Set([
+      KeyDisplayElement.codeDict["ControlLeft"],
+      KeyDisplayElement.codeDict["ControlRight"],
+      "ControlLeft",
+      "ControlRight",
+      KeyDisplayElement.codeDict["AltLeft"],
+      KeyDisplayElement.codeDict["AltRight"],
+      "AltLeft",
+      "AltRight",
+      KeyDisplayElement.codeDict["ShiftLeft"],
+      KeyDisplayElement.codeDict["ShiftRight"],
+      "ShiftLeft",
+      "ShiftRight",
+      KeyDisplayElement.codeDict["MetaLeft"],
+      KeyDisplayElement.codeDict["MetaRight"],
+      "MetaLeft",
+      "MetaRight",
+    ]);
+    this.shadow = this.attachShadow({ mode: "open" });
+    this.handleKeydown = this._handleKeydown.bind(this);
 
-        this.shadow = this.attachShadow({ mode: "open" });
-        this.shadow.innerHTML = `
-      <style>
-        .container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          position: fixed;
-          bottom: 4rem;
-          left: 50%;
-          transform: translateX(-50%);
-          gap: 10px;
-          animation: fadeIn 0.5s ease-out;
-          user-select: none;
-          z-index: 9999;
-        }
+    this.shadow.innerHTML = `<style>
+#container {
+  --kd-color-background: #f7f7f7;
+  --kd-color-border: #cccccc;
+  --kd-color-text: #999999;
 
-        .key-box {
-          position: relative;
-          color: rgba(200, 200, 200);
-          background: rgba(100, 100, 100);
-          white-space: nowrap;
-          border-radius: 5px;
-          box-shadow: 0 4px 6px -1px rgba(250, 250, 250, 0.8), 0 2px 4px -2px rgba(250, 250, 250, 0.8);
-        }
+  padding: 10px;
+  display: flex;
+  gap: 16px;
 
-        .key-box:last-child {
-          color: rgb(250, 250, 250);
-          background: rgb(25, 25, 25);
-        }
-
-        .key-box .key {
-          padding: 10px 20px;
-          font-size: 16px;
-          font-weight: bold;
-        }
-
-        .key-box .count {
-          position: absolute;
-          top: -100%;
-          left: 50%;
-          transform: translateX(-50%);
-          color: orange;
-          font-size: 1.5rem;
-          font-weight: bold;
-        }
-      </style>
-      <div class="container"></div>
-      `;
-      }
-
-      connectedCallback() {
-        document.addEventListener("keydown", this.handleKeydown);
-      }
-
-      disconnectedCallback() {
-        document.removeEventListener("keydown", this.handleKeydown);
-      }
-
-      createKeyElement({ key }: KeyPressHistoryItem) {
-        const keyContainerEl = document.createElement("div");
-        keyContainerEl.classList.add("key-box");
-
-        const keyEl = document.createElement("div");
-        keyEl.classList.add("key");
-        keyEl.textContent = key;
-
-        const countEl = document.createElement("span");
-        countEl.classList.add("count");
-
-        keyContainerEl.appendChild(countEl);
-        keyContainerEl.appendChild(keyEl);
-
-        return [keyContainerEl, countEl];
-      }
-
-      updateKey(key: string) {
-        const container = this.shadow.querySelector(".container");
-
-        if (
-          mergeRepeatKey &&
-          this.keyPressHistory.length &&
-          this.keyPressHistory[this.keyPressHistory.length - 1].key === key
-        ) {
-          const lastHistoryItem =
-            this.keyPressHistory[this.keyPressHistory.length - 1];
-          const count = ++lastHistoryItem.count;
-          if (showRepeatCount && lastHistoryItem.countEl)
-            lastHistoryItem.countEl.textContent = `\u00D7 ${count}`;
-        } else {
-          const item: KeyPressHistoryItem = {
-            key,
-            count: 1,
-            countEl: null,
-          };
-          const [keyContainerEl, countEl] = this.createKeyElement(item);
-          container?.appendChild(keyContainerEl);
-
-          item.countEl = countEl;
-          this.keyPressHistory.push(item);
-        }
-
-        if (this.keyPressHistory.length > maxKeys) {
-          this.keyPressHistory.shift();
-          container?.firstChild?.remove();
-        }
-
-        this.clearContainer();
-      }
-
-      _clearContainer() {
-        function debounce(func: () => void, timeout: number) {
-          let timer: number;
-          return (...args: any) => {
-            timer && clearTimeout(timer);
-            timer = setTimeout(() => {
-              // @ts-ignore
-              func.apply(this, args);
-            }, timeout);
-          };
-        }
-
-        return debounce(() => {
-          const container = this.shadow.querySelector(".container");
-          if (!container) return;
-
-          this.keyPressHistory = [];
-          container.innerHTML = "";
-        }, timeout);
-      }
-
-      _handleKeydown(event: KeyboardEvent) {
-        let keyCombination = "";
-        if (mergeModifierKey) {
-          if (event.ctrlKey && event.key !== "Control")
-            keyCombination += "Ctrl + ";
-          if (event.shiftKey && event.key !== "Shift")
-            keyCombination += "Shift + ";
-          if (event.altKey && event.key !== "Alt") keyCombination += "Alt + ";
-          if (event.metaKey && event.key !== "Meta")
-            keyCombination += "Meta + ";
-        }
-
-        if (
-          upperLetter &&
-          event.key.length === 1 &&
-          event.key.charCodeAt(0) >= 97 &&
-          event.key.charCodeAt(0) <= 122
-        ) {
-          keyCombination += event.key.toUpperCase();
-        } else {
-          keyCombination += event.key;
-        }
-
-        this.updateKey(keyCombination);
-      }
-    },
-  );
+  position: fixed;
+  bottom: 20vh;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: fadeIn 0.5s ease-out;
+  z-index: 9999;
+  user-select: none;
 }
+
+.key {
+  position: relative;
+  color: var(--kd-color-text);
+}
+
+.key:last-child {
+  --kd-color-text: #333333;
+}
+
+kbd {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, monospace;
+  background-color: var(--kd-color-background);
+  border: 2px solid var(--kd-color-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 0 1.5px var(--kd-color-border);
+  cursor: default;
+  font-size: 32px;
+  font-weight: bold;
+  display: inline-block;
+  padding: 8px 16px;
+  position: relative;
+  top: -1px;
+  white-space: nowrap;
+}
+
+.keypress kbd {
+  box-shadow: 0 1px 0 0.5px var(--kd-color-border);
+  top: 1px;
+}
+
+sup {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, monospace;
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 3px 6px;
+  cursor: default;
+}
+</style>
+<div id="container"></div>`;
+  }
+
+  connectedCallback() {
+    console.log("key-display connectedCallback");
+
+    window.addEventListener("keydown", this.handleKeydown, {
+      capture: true,
+      passive: true,
+    });
+  }
+
+  disconnectedCallback() {
+    console.log("key-display disconnectedCallback");
+
+    window.removeEventListener("keydown", this.handleKeydown, true);
+  }
+
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null) {
+    console.log(`Attribute ${name} has changed from ${oldValue} to ${newValue}.`);
+
+    switch (name) {
+      case "max-keys":
+        const maxKeys = parseInt(newValue || '');
+        if (isNaN(maxKeys) || maxKeys <= 0) {
+          throw new Error("maxKeys must be positive");
+        }
+        this.config.maxKeys = maxKeys;
+        break;
+      case "hidden-delay":
+        const hiddenDelay = parseInt(newValue || '');
+        if (isNaN(hiddenDelay) || hiddenDelay <= 0) {
+          throw new Error("hiddenDelay must be positive");
+        }
+        this.config.hiddenDelay = hiddenDelay;
+        break;
+      case "merge-repeat-keys":
+        this.config.mergeRepeatKeys = newValue === "on";
+        break;
+      case "mergeModifierKeys":
+        this.config.mergeModifierKeys = newValue === "on";
+        break;
+      default:
+        break;
+    }
+  }
+
+  get hiddenDelay() {
+    return this.config.hiddenDelay;
+  }
+
+  @debounce<KeyDisplayElement>("hiddenDelay")
+  private clearContainer() {
+    const container = this.shadow.getElementById("container");
+    if (!container) return;
+
+    container.replaceChildren();
+  }
+
+  private _handleKeydown(event: KeyboardEvent) {
+    console.log("keydown event", event.code, event);
+
+    const container = this.shadow.getElementById("container");
+    if (!container) return;
+
+    const connector = " + ";
+    let modifier = "";
+    let code = event.code;
+
+    if (this.config.mergeModifierKeys) {
+      // FIXME: 多个修饰键按下的顺序问题
+      if (event.ctrlKey && event.key !== "Control") {
+        const controlCode =
+          KeyDisplayElement.codeDict["ControlLeft"] ||
+          KeyDisplayElement.codeDict["ControlRight"] ||
+          "Control";
+        modifier += controlCode + connector;
+      }
+      if (event.shiftKey && event.key !== "Shift") {
+        const shiftCode =
+          KeyDisplayElement.codeDict["ShiftLeft"] ||
+          KeyDisplayElement.codeDict["ShiftRight"] ||
+          "Shift";
+        modifier += shiftCode + connector;
+      }
+      if (event.altKey && event.key !== "Alt") {
+        const altCode =
+          KeyDisplayElement.codeDict["AltLeft"] || KeyDisplayElement.codeDict["AltRight"] || "Alt";
+        modifier += altCode + connector;
+      }
+      if (event.metaKey && event.key !== "Meta") {
+        const metaCode =
+          KeyDisplayElement.codeDict["MetaLeft"] ||
+          KeyDisplayElement.codeDict["MetaRight"] ||
+          "Meta";
+        modifier += metaCode + connector;
+      }
+    }
+
+    if (KeyDisplayElement.codeDict[code]) {
+      code = KeyDisplayElement.codeDict[code];
+    } else if (code.startsWith("Key")) {
+      code = code.slice(3);
+    } else if (code.startsWith("Digit")) {
+      code = code.slice(5);
+    } else if (code.startsWith("Numpad")) {
+      code = code.slice(6);
+    } else {
+      code = event.code;
+    }
+
+    const kbdContent = modifier + code;
+    const lastKeyNode = container.lastChild as HTMLElement | null;
+    const kbdNode = lastKeyNode?.firstChild;
+
+    if (this.config.mergeRepeatKeys && kbdNode && kbdNode.textContent === kbdContent) {
+      if (lastKeyNode?.childElementCount === 1) {
+        const supEl = document.createElement("sup");
+        supEl.textContent = '2';
+        lastKeyNode.appendChild(supEl);
+      } else {
+        const supNode = lastKeyNode.lastChild as HTMLElement;
+        supNode.textContent = `${parseInt(supNode.textContent) + 1}`;
+      }
+    } else {
+      let shouldCreateElement = true;
+
+      if (
+        this.config.mergeModifierKeys &&
+        modifier &&
+        kbdNode &&
+        kbdNode.textContent &&
+        lastKeyNode.childElementCount === 1
+      ) {
+        const lastPlusIndex = kbdNode.textContent.lastIndexOf(connector);
+        const lastKey =
+          lastPlusIndex === -1
+            ? kbdNode.textContent
+            : kbdNode.textContent.slice(lastPlusIndex + connector.length);
+
+        if (this.modifierKeySet.has(lastKey)) {
+          kbdNode.textContent = kbdNode.textContent + connector + code;
+          shouldCreateElement = false;
+        }
+      }
+
+      if (shouldCreateElement) {
+        const keyDivEl = document.createElement("div");
+        keyDivEl.classList.add("key");
+        const kbdEl = document.createElement("kbd");
+        kbdEl.textContent = kbdContent;
+        keyDivEl.appendChild(kbdEl);
+        container.appendChild(keyDivEl);
+      }
+    }
+
+    while (container.childElementCount > this.config.maxKeys) {
+      container.firstChild?.remove();
+    }
+
+    this.clearContainer();
+  }
+}
+
+window.customElements.define("key-display", KeyDisplayElement);
