@@ -20,6 +20,6 @@
   "license": "MIT",
   "scripts": {},
   "devDependencies": {
-    "typescript": "^5.6.3"
+    "esbuild": "~0.25.9"
   }
 }
