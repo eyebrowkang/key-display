@@ -18,7 +18,10 @@
   ],
   "author": "eyebrowkang",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "dev": "esbuild --outdir=dist --watch --servedir=. key-display.ts",
+    "build": "tsc"
+  },
   "devDependencies": {
     "esbuild": "~0.25.9"
   }
