@@ -1,56 +1,107 @@
+import { ContentScriptContext } from "wxt/utils/content-script-context";
+import { ExtensionState, DEFAULT_STATE } from "~/shared/types";
+
+class KeyDisplayManager {
+  private keyDisplayElement: HTMLElement | null = null;
+  private state: ExtensionState = DEFAULT_STATE;
+
+  async init() {
+    // Load initial state from storage
+    await this.loadState();
+
+    // Apply initial state
+    if (this.state.enabled) {
+      this.injectKeyDisplay();
+    }
+
+    // Listen for messages from the popup
+    browser.runtime.onMessage.addListener((message) => {
+      if (message.type === "STATE_CHANGED") {
+        this.handleStateChange(message.state);
+      }
+    });
+  }
+
+  private async loadState() {
+    try {
+      const result = await browser.storage.sync.get(["extensionState"]);
+      this.state = { ...DEFAULT_STATE, ...result.extensionState };
+    } catch (error) {
+      console.error("Failed to load state:", error);
+    }
+  }
+
+  private handleStateChange(newState: ExtensionState) {
+    const wasEnabled = this.state.enabled;
+    this.state = newState;
+
+    if (newState.enabled && !wasEnabled) {
+      // Extension was turned on
+      this.injectKeyDisplay();
+    } else if (!newState.enabled && wasEnabled) {
+      // Extension was turned off
+      this.removeKeyDisplay();
+    } else if (newState.enabled && this.keyDisplayElement) {
+      // Extension is enabled and config changed
+      this.updateKeyDisplayConfig();
+    }
+  }
+
+  private async injectKeyDisplay() {
+    if (this.keyDisplayElement) {
+      return; // Already injected
+    }
+
+    try {
+      if (!window.customElements) {
+        await import("@webcomponents/webcomponentsjs");
+        await import("key-display");
+      }
+
+      // Create the key-display element
+      this.keyDisplayElement = document.createElement("key-display");
+
+      // Set initial attributes
+      this.updateKeyDisplayConfig();
+
+      // Append to body
+      document.body.appendChild(this.keyDisplayElement);
+    } catch (error) {
+      console.error("Failed to inject Key Display component:", error);
+    }
+  }
+
+  private removeKeyDisplay() {
+    if (this.keyDisplayElement && this.keyDisplayElement.parentNode) {
+      this.keyDisplayElement.parentNode.removeChild(this.keyDisplayElement);
+      this.keyDisplayElement = null;
+    }
+  }
+
+  private updateKeyDisplayConfig() {
+    if (!this.keyDisplayElement) {
+      return;
+    }
+
+    // Update attributes based on the current state
+    this.keyDisplayElement.setAttribute("max-keys", this.state.maxKeys.toString());
+    this.keyDisplayElement.setAttribute("hidden-delay", this.state.hiddenDelay.toString());
+  }
+
+  cleanup() {
+    this.removeKeyDisplay();
+  }
+}
+
 export default defineContentScript({
   matches: ["<all_urls>"],
-  main() {
-    (async () => {
-      let { config } = await chrome.storage.sync.get("config");
+  main(ctx: ContentScriptContext) {
+    const manager = new KeyDisplayManager();
+    manager.init();
 
-      if (Object.keys(config || {}).length === 0) {
-        const { extension, keyDisplay } = await import("../utils/config");
-        config = {
-          keyDisplay,
-          extension,
-        };
-        await chrome.storage.sync.set({ config });
-      }
-
-      await import("@webcomponents/webcomponentsjs");
-      // @ts-ignore
-      const { default: defineKeyDisplay } = await import("key-display");
-      defineKeyDisplay({
-        ...config.keyDisplay,
-      });
-
-      async function injectKeyDisplay() {
-        const keyDisplayEl = document.createElement("key-display");
-        document.body.appendChild(keyDisplayEl);
-        return keyDisplayEl;
-      }
-
-      if (config.extension.defaultOn === true) {
-        await injectKeyDisplay();
-      }
-
-      chrome.runtime.onMessage.addListener(async (message) => {
-        if (message !== "ON" && message !== "OFF") return;
-
-        if (message === "ON") {
-          await injectKeyDisplay();
-        } else {
-          document.querySelector("key-display")?.remove();
-        }
-
-        if (config.extension.remember === true) {
-          await chrome.storage.sync.set({
-            config: {
-              keyDisplay: config.keyDisplay,
-              extension: {
-                defaultOn: message === "ON",
-                remember: true,
-              },
-            },
-          });
-        }
-      });
-    })();
+    // Cleanup on context invalidation
+    ctx.onInvalidated(() => {
+      manager.cleanup();
+    });
   },
 });

@@ -1,8 +1,7 @@
 {
-  "name": "Key Display",
-  "description": "Display key press on web page",
+  "name": "extensions",
+  "description": "manifest.json description",
   "private": true,
-  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -15,8 +14,8 @@
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.280",
-    "wxt": "^0.19.13"
+    "vite": "^6.3.5",
+    "wxt": "^0.20.6"
   },
   "dependencies": {
     "@webcomponents/webcomponentsjs": "^2.8.0",
