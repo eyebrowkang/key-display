@@ -23,6 +23,6 @@ npm install key-display
 ## How to use
 
 ```html
-<script src="../dist/key-display.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/key-display@0.2.0/dist/key-display.js"></script>
 <key-display max-keys="5" hidden-delay="5000"></key-display>
 ```
