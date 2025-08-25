@@ -1,3 +1,9 @@
+## 0.2.0
+
+1. new design
+2. remove merge configurations
+3. fix some bugs when merging keys
+
 ## 0.1.1
 
 fix config bug

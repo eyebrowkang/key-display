@@ -1,7 +1,7 @@
 {
   "name": "key-display",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Display key press on web page",
   "main": "./dist/key-display.js",
   "module": "./dist/key-display.js",
